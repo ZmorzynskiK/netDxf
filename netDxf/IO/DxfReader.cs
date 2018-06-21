@@ -1275,7 +1275,7 @@ namespace netDxf.IO
                         this.chunk.Next();
                         break;
                     case 340:
-                        pointerToLayout = this.chunk.ReadHex();
+                        pointerToLayout = this.chunk.ReadHex(true);
                         this.chunk.Next();
                         break;
                     case 1001:
@@ -1581,11 +1581,11 @@ namespace netDxf.IO
                         this.chunk.Next();
                         break;
                     case 340:
-                        dimtxsty = this.chunk.ReadHex();
+                        dimtxsty = this.chunk.ReadHex(true);
                         this.chunk.Next();
                         break;
                     case 341:
-                        dimldrblk = this.chunk.ReadHex();
+                        dimldrblk = this.chunk.ReadHex(true);
                         this.chunk.Next();
                         break;
                     case 342:

@@ -214,13 +214,16 @@ namespace netDxf.IO
             return (string)this.value;
         }
 
-        public string ReadHex()
+        public string ReadHex(bool optional = false)
         {
             long test;
             if (long.TryParse((string)this.value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out test))
                 return test.ToString("X");
 
-            throw new Exception(string.Format("Value {0} not valid at line {1}", this.value, this.CurrentPosition));
+			if(GlobalOptions.IsBackwardCompatibilityEnabled || optional)
+				return string.Empty;
+			else
+				throw new Exception(string.Format("Value {0} not valid at line {1}", this.value, this.CurrentPosition));
         }
 
         public override string ToString()

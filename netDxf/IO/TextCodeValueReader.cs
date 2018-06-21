@@ -156,14 +156,14 @@ namespace netDxf.IO
             return this.value;
         }
 
-        public string ReadHex()
+        public string ReadHex(bool optional = false)
         {
             long test;
             if (long.TryParse(this.value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out test))
                 return test.ToString("X");
 
-			if(GlobalOptions.IsBackwardCompatibilityEnabled)
-				return null;
+			if(GlobalOptions.IsBackwardCompatibilityEnabled || optional)
+				return string.Empty;
 			else
 				throw new Exception(string.Format("Value {0} not valid at line {1}", this.value, this.currentPosition));
         }

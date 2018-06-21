@@ -48,6 +48,6 @@ namespace netDxf.IO
         bool ReadBool();
         double ReadDouble();
         string ReadString();
-        string ReadHex();
+        string ReadHex(bool optional = false);
     }
 }
