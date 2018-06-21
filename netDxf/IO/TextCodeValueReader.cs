@@ -75,8 +75,12 @@ namespace netDxf.IO
         {
             string readCode = this.reader.ReadLine();
             this.currentPosition += 1;
-            if (!short.TryParse(readCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out this.code))
-                throw new Exception(string.Format("Code {0} not valid at line {1}", this.code, this.currentPosition));
+			if(!short.TryParse(readCode, NumberStyles.Integer, CultureInfo.InvariantCulture, out this.code))
+			{
+				if(GlobalOptions.IsBackwardCompatibilityEnabled)
+					return;
+				throw new Exception(string.Format("Code {0} not valid at line {1}", this.code, this.currentPosition));
+			}
             this.value = this.reader.ReadLine();
             this.currentPosition += 1;
         }
@@ -158,7 +162,10 @@ namespace netDxf.IO
             if (long.TryParse(this.value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out test))
                 return test.ToString("X");
 
-            throw new Exception(string.Format("Value {0} not valid at line {1}", this.value, this.currentPosition));
+			if(GlobalOptions.IsBackwardCompatibilityEnabled)
+				return null;
+			else
+				throw new Exception(string.Format("Value {0} not valid at line {1}", this.value, this.currentPosition));
         }
 
         public override string ToString()

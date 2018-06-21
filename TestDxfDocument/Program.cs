@@ -27,7 +27,7 @@ namespace TestDxfDocument
     {
         public static void Main()
         {
-            DxfDocument doc = Test(@"sample.dxf");
+            DxfDocument doc = Test(@"sample3.dxf");
 
             #region Samples for new and modified features 2.1.0
 
@@ -3332,27 +3332,29 @@ namespace TestDxfDocument
                 return null;
             }
 
+			GlobalOptions.IsBackwardCompatibilityEnabled = true;
+
             // check if the dxf file version is supported
-            if (dxfVersion < DxfVersion.AutoCad2000)
-            {
-                Console.WriteLine("THE FILE {0} IS NOT A SUPPORTED DXF", file);
-                Console.WriteLine();
+            //if (dxfVersion < DxfVersion.AutoCad2000)
+            //{
+            //    Console.WriteLine("THE FILE {0} IS NOT A SUPPORTED DXF", file);
+            //    Console.WriteLine();
 
-                Console.WriteLine("FILE VERSION: {0}", dxfVersion);
-                Console.WriteLine();
+            //    Console.WriteLine("FILE VERSION: {0}", dxfVersion);
+            //    Console.WriteLine();
 
-                if (outputLog)
-                {
-                    writer.Flush();
-                    writer.Close();
-                }
-                else
-                {
-                    Console.WriteLine("Press a key to continue...");
-                    Console.ReadLine();
-                }
-                return null;
-            }
+            //    if (outputLog)
+            //    {
+            //        writer.Flush();
+            //        writer.Close();
+            //    }
+            //    else
+            //    {
+            //        Console.WriteLine("Press a key to continue...");
+            //        Console.ReadLine();
+            //    }
+            //    return null;
+            //}
 
             DxfDocument dxf = DxfDocument.Load(file, new List<string> {@".\Support"});
 

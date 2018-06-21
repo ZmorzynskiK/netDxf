@@ -137,7 +137,7 @@ namespace netDxf.IO
             DxfVersion version = DxfDocument.CheckDxfFileVersion(stream, out this.isBinary);
             stream.Position = startPosition;
 
-            if(version<DxfVersion.AutoCad2000)
+            if(version<DxfVersion.AutoCad2000 && !GlobalOptions.IsBackwardCompatibilityEnabled)
                 throw new DxfVersionNotSupportedException(string.Format("DXF file version not supported : {0}.", version), version);
 
             string dwgcodepage = CheckHeaderVariable(stream, HeaderVariableCode.DwgCodePage, out this.isBinary);
@@ -193,8 +193,8 @@ namespace netDxf.IO
             {
                 throw new IOException("Unknown error opening the reader.", ex);
             }
-
-            this.doc = new DxfDocument(new HeaderVariables(), false, supportFolders);
+			
+            this.doc = new DxfDocument(new HeaderVariables(), GlobalOptions.IsBackwardCompatibilityEnabled ? true : false, supportFolders);
 
             this.entityList = new Dictionary<EntityObject, string>();
             this.viewports = new Dictionary<Viewport, string>();
@@ -383,7 +383,7 @@ namespace netDxf.IO
                         string version = this.chunk.ReadString();
                         if (StringEnum.IsStringDefined(typeof (DxfVersion), version))
                             acadVer = (DxfVersion) StringEnum.Parse(typeof (DxfVersion), version);
-                        if (acadVer < DxfVersion.AutoCad2000)
+                        if (acadVer < DxfVersion.AutoCad2000 && !GlobalOptions.IsBackwardCompatibilityEnabled)
                             throw new NotSupportedException("Only AutoCad2000 and higher dxf versions are supported.");
                         this.doc.DrawingVariables.AcadVer = acadVer;
                         this.chunk.Next();
@@ -1085,9 +1085,23 @@ namespace netDxf.IO
                             this.chunk.Next();
                             break;
                     }
-                }
+					if(GlobalOptions.IsBackwardCompatibilityEnabled && this.chunk.Code == 0)
+						break;
+				}
 
-                this.chunk.Next();
+				if(GlobalOptions.IsBackwardCompatibilityEnabled)
+				{
+					if(this.chunk.ReadString() == DxfObjectCode.EndTable)
+						break;
+					switch(dxfCode)
+					{
+						default:
+							this.ReadUnkownTableEntry();
+							return;
+					}
+				}
+
+				this.chunk.Next();
 
                 switch (dxfCode)
                 {
@@ -2571,8 +2585,13 @@ namespace netDxf.IO
                 }
             }
 
-            if (!this.blockRecords.TryGetValue(name, out blockRecord))
-                throw new Exception(string.Format("The block record {0} is not defined.", name));
+			if(!GlobalOptions.IsBackwardCompatibilityEnabled)
+			{
+				if(!this.blockRecords.TryGetValue(name, out blockRecord))
+					throw new Exception(string.Format("The block record {0} is not defined.", name));
+			}
+			else
+				blockRecord = null;
 
             Block block;
 
@@ -3023,6 +3042,8 @@ namespace netDxf.IO
                 switch (this.chunk.Code)
                 {
                     case 0:
+						if(GlobalOptions.IsBackwardCompatibilityEnabled)
+							break;
                         throw new Exception(string.Format("Premature end of entity {0} definition.", dxfCode));
                     case 5:
                         handle = this.chunk.ReadHex();
@@ -3041,59 +3062,65 @@ namespace netDxf.IO
                         this.chunk.Next();
                         break;
                 }
-            }
 
-            // AcDbEntity common codes
-            Debug.Assert(this.chunk.ReadString() == SubclassMarker.Entity);
-            this.chunk.Next();
-            while (this.chunk.Code != 100)
-            {
-                switch (this.chunk.Code)
-                {
-                    case 0:
-                        throw new Exception(string.Format("Premature end of entity {0} definition.", dxfCode));
-                    case 8: //layer code
-                        string layerName = this.DecodeEncodedNonAsciiCharacters(this.chunk.ReadString());
-                        layer = this.GetLayer(layerName);
-                        this.chunk.Next();
-                        break;
-                    case 62: //ACI color code
-                        if (!color.UseTrueColor)
-                            color = AciColor.FromCadIndex(this.chunk.ReadShort());
-                        this.chunk.Next();
-                        break;
-                    case 420: //the entity uses true color
-                        color = AciColor.FromTrueColor(this.chunk.ReadInt());
-                        this.chunk.Next();
-                        break;
-                    case 440: //transparency
-                        transparency = Transparency.FromAlphaValue(this.chunk.ReadInt());
-                        this.chunk.Next();
-                        break;
-                    case 6: //type line code
-                        string linetypeName = this.DecodeEncodedNonAsciiCharacters(this.chunk.ReadString());
-                        linetype = this.GetLinetype(linetypeName);
-                        this.chunk.Next();
-                        break;
-                    case 370: //line weight code
-                        lineweight = (Lineweight) this.chunk.ReadShort();
-                        this.chunk.Next();
-                        break;
-                    case 48: //line type scale
-                        linetypeScale = this.chunk.ReadDouble();
-                        if (linetypeScale <= 0.0)
-                            linetypeScale = 1.0;
-                        this.chunk.Next();
-                        break;
-                    case 60: //object visibility
-                        isVisible = this.chunk.ReadShort() == 0;
-                        this.chunk.Next();
-                        break;
-                    default:
-                        this.chunk.Next();
-                        break;
-                }
-            }
+				if(GlobalOptions.IsBackwardCompatibilityEnabled && this.chunk.Code == 0)
+					break;
+			}
+
+			if(!GlobalOptions.IsBackwardCompatibilityEnabled)
+			{
+				// AcDbEntity common codes
+				Debug.Assert(this.chunk.ReadString() == SubclassMarker.Entity);
+				this.chunk.Next();
+				while(this.chunk.Code != 100)
+				{
+					switch(this.chunk.Code)
+					{
+						case 0:
+							throw new Exception(string.Format("Premature end of entity {0} definition.", dxfCode));
+						case 8: //layer code
+							string layerName = this.DecodeEncodedNonAsciiCharacters(this.chunk.ReadString());
+							layer = this.GetLayer(layerName);
+							this.chunk.Next();
+							break;
+						case 62: //ACI color code
+							if(!color.UseTrueColor)
+								color = AciColor.FromCadIndex(this.chunk.ReadShort());
+							this.chunk.Next();
+							break;
+						case 420: //the entity uses true color
+							color = AciColor.FromTrueColor(this.chunk.ReadInt());
+							this.chunk.Next();
+							break;
+						case 440: //transparency
+							transparency = Transparency.FromAlphaValue(this.chunk.ReadInt());
+							this.chunk.Next();
+							break;
+						case 6: //type line code
+							string linetypeName = this.DecodeEncodedNonAsciiCharacters(this.chunk.ReadString());
+							linetype = this.GetLinetype(linetypeName);
+							this.chunk.Next();
+							break;
+						case 370: //line weight code
+							lineweight = (Lineweight)this.chunk.ReadShort();
+							this.chunk.Next();
+							break;
+						case 48: //line type scale
+							linetypeScale = this.chunk.ReadDouble();
+							if(linetypeScale <= 0.0)
+								linetypeScale = 1.0;
+							this.chunk.Next();
+							break;
+						case 60: //object visibility
+							isVisible = this.chunk.ReadShort() == 0;
+							this.chunk.Next();
+							break;
+						default:
+							this.chunk.Next();
+							break;
+					}
+				}
+			}
 
             switch (dxfCode)
             {
@@ -9245,17 +9272,25 @@ namespace netDxf.IO
             {
                 Layout layout;
                 Block block;
-                if (pair.Value == null)
-                {
-                    // the Model layout is the default in case the entity has not one defined
-                    layout = this.doc.Layouts[Layout.ModelSpaceName];
-                    block = layout.AssociatedBlock;
-                }
-                else
-                {
-                    block = this.GetBlock(((BlockRecord) this.doc.GetObjectByHandle(pair.Value)).Name);
-                    layout = block.Record.Layout;
-                }
+				if(!GlobalOptions.IsBackwardCompatibilityEnabled)
+				{
+					if(pair.Value == null)
+					{
+						// the Model layout is the default in case the entity has not one defined
+						layout = this.doc.Layouts[Layout.ModelSpaceName];
+						block = layout.AssociatedBlock;
+					}
+					else
+					{
+						block = this.GetBlock(((BlockRecord)this.doc.GetObjectByHandle(pair.Value)).Name);
+						layout = block.Record.Layout;
+					}
+				}
+				else
+				{
+					layout = Layout.ModelSpace;
+					block = Block.ModelSpace;
+				}
 
                 // the viewport with id 1 is stored directly in the layout since it has no graphical representation
                 Viewport viewport = pair.Key as Viewport;

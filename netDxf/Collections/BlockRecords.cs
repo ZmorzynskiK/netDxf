@@ -89,7 +89,8 @@ namespace netDxf.Collections
             foreach (AttributeDefinition attDef in block.AttributeDefinitions.Values)
                 this.Owner.AddEntity(attDef, true, assignHandle);
 
-            block.Record.Owner = this;
+			if(!GlobalOptions.IsBackwardCompatibilityEnabled)
+				block.Record.Owner = this;
 
             block.NameChanged += this.Item_NameChanged;
             block.LayerChanged += this.Block_LayerChanged;
@@ -99,7 +100,8 @@ namespace netDxf.Collections
             block.AttributeDefinitionRemoved += this.Block_EntityRemoved;
 
             this.Owner.AddedObjects.Add(block.Handle, block);
-            this.Owner.AddedObjects.Add(block.Owner.Handle, block.Owner);
+			if(!GlobalOptions.IsBackwardCompatibilityEnabled && block.Owner != null)
+				this.Owner.AddedObjects.Add(block.Owner.Handle, block.Owner);
 
             return block;
         }
@@ -150,8 +152,11 @@ namespace netDxf.Collections
             this.references.Remove(item.Name);
             this.list.Remove(item.Name);
 
-            item.Record.Handle = null;
-            item.Record.Owner = null;
+			if(!GlobalOptions.IsBackwardCompatibilityEnabled)
+			{
+				item.Record.Handle = null;
+				item.Record.Owner = null;
+			}
 
             item.Handle = null;
             item.Owner = null;

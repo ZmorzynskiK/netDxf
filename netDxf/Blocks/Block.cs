@@ -558,7 +558,8 @@ namespace netDxf.Blocks
         /// </remarks>
         internal override long AsignHandle(long entityNumber)
         {
-            entityNumber = this.Owner.AsignHandle(entityNumber);
+			if(!GlobalOptions.IsBackwardCompatibilityEnabled)
+				entityNumber = this.Owner.AsignHandle(entityNumber);
             entityNumber = this.end.AsignHandle(entityNumber);
             foreach (AttributeDefinition attdef in this.attributes.Values)
             {

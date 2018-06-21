@@ -1064,6 +1064,8 @@ namespace netDxf
         public static DxfVersion CheckDxfFileVersion(Stream stream, out bool isBinary)
         {
             string value = DxfReader.CheckHeaderVariable(stream, HeaderVariableCode.AcadVer, out isBinary);
+			if(string.IsNullOrWhiteSpace(value))
+				return DxfVersion.Unknown;
             return (DxfVersion) StringEnum.Parse(typeof (DxfVersion), value);
         }
 

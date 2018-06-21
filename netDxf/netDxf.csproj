@@ -90,6 +90,7 @@
     <Compile Include="Collections\SupportFolders.cs" />
     <Compile Include="Entities\MTextDrawingDirection.cs" />
     <Compile Include="Entities\Shape.cs" />
+    <Compile Include="GlobalOptions.cs" />
     <Compile Include="IHasXData.cs" />
     <Compile Include="IO\DxfVersionNotSupportedException.cs" />
     <Compile Include="Objects\PaperMargin.cs" />
