@@ -3028,6 +3028,7 @@ namespace netDxf.IO
             Linetype linetype = Linetype.ByLayer;
             Lineweight lineweight = Lineweight.ByLayer;
             double linetypeScale = 1.0;
+			short flags = 0; // backward compat
             bool isVisible = true;
             Transparency transparency = Transparency.ByLayer;
 
@@ -3049,7 +3050,11 @@ namespace netDxf.IO
                         handle = this.chunk.ReadHex();
                         this.chunk.Next();
                         break;
-                    case 102:
+					case 70:
+						flags = this.chunk.ReadShort();
+						this.chunk.Next();
+						break;
+					case 102:
                         this.ReadExtensionDictionaryGroup();
                         this.chunk.Next();
                         break;
@@ -3173,7 +3178,7 @@ namespace netDxf.IO
                     entityObject = this.ReadPoint();
                     break;
                 case DxfObjectCode.Polyline:
-                    entityObject = this.ReadPolyline();
+                    entityObject = this.ReadPolyline(flags);
                     break;
                 case DxfObjectCode.Ray:
                     entityObject = this.ReadRay();
@@ -7050,7 +7055,7 @@ namespace netDxf.IO
             return entity;
         }
 
-        private EntityObject ReadPolyline()
+		private EntityObject ReadPolyline(short readedFlags)
         {
             // the entity Polyline in dxf can actually hold three kinds of entities
             // 3d polyline is the generic polyline
@@ -7058,6 +7063,7 @@ namespace netDxf.IO
             // polylines 2d is the old way of writing polylines the AutoCAD2000 and newer always use LwPolylines to define a 2d polyline
             // this way of reading 2d polylines is here for compatibility reasons with older dxf versions.
             PolylinetypeFlags flags = PolylinetypeFlags.OpenPolyline;
+			bool hasFlags = false; // backward compat
             PolylineSmoothType smoothType = PolylineSmoothType.NoSmooth;
             double elevation = 0.0;
             double thickness = 0.0;
@@ -7065,7 +7071,8 @@ namespace netDxf.IO
             List<Vertex> vertexes = new List<Vertex>();
             List<XData> xData = new List<XData>();
 
-            this.chunk.Next();
+			if(!GlobalOptions.IsBackwardCompatibilityEnabled)
+				this.chunk.Next(); // read next chunk only when backward compat is disabled
 
             while (this.chunk.Code != 0)
             {
@@ -7082,7 +7089,8 @@ namespace netDxf.IO
                     case 70:
                         flags = (PolylinetypeFlags) this.chunk.ReadShort();
                         this.chunk.Next();
-                        break;
+						hasFlags = true; // backward compat
+						break;
                     case 75:
                         smoothType = (PolylineSmoothType) this.chunk.ReadShort();
                         this.chunk.Next();
@@ -7120,6 +7128,9 @@ namespace netDxf.IO
                         break;
                 }
             }
+
+			if(GlobalOptions.IsBackwardCompatibilityEnabled && !hasFlags)
+				flags = (PolylinetypeFlags)readedFlags; // set readed flags in compat mode and when we didnt read them already
 
             //begin to read the vertex list (although it is not recommended the vertex list might have 0 entries)
             while (this.chunk.ReadString() != DxfObjectCode.EndSequence)
